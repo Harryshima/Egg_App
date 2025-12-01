@@ -1,5 +1,6 @@
 {
   "expo": {
+    "scheme": "eggcellent",
     "name": "Eggcellent",
     "slug": "Eggcellent",
     "version": "1.0.0",
@@ -20,10 +21,20 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.harryshima.Eggcellent"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "47e28acc-554f-4f81-8509-ff8df0a09dfa"
+      }
+    },
+    "owner": "harryshima"
   }
 }
