@@ -1,13 +1,11 @@
 import React from "react";
 import { Stack } from "expo-router";
 import ThemeProvider from "./theme/ThemeProvider";
-import AnimatedSplashScreen from "./AnimatedSplashSreen";
-import { AuthProvider } from "./AuthContext";
+import AnimatedSplashScreen from "./AnimatedSplashScreen";
 
 export default function RootLayout() {
   return (
     <ThemeProvider>
-      <AuthProvider>
         <AnimatedSplashScreen>
           <Stack
             screenOptions={{
@@ -16,7 +14,6 @@ export default function RootLayout() {
             }}
           />
         </AnimatedSplashScreen>
-      </AuthProvider>
     </ThemeProvider>
   );
 }

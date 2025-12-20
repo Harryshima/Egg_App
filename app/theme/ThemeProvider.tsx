@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState, useRef, ReactNode } from "react";
+import { Animated } from "react-native";
 
 interface Colors {
   background: string;
@@ -13,7 +14,7 @@ interface Colors {
   warning: string;
   warningBg: string;
   primary: string;
-  info: string
+  info: string;
   border: string;
 }
 
@@ -21,6 +22,7 @@ interface ThemeContextType {
   darkMode: boolean;
   toggleTheme: () => void;
   colors: Colors;
+  animatedOpacity: Animated.Value;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -69,13 +71,32 @@ interface ThemeProviderProps {
 
 export default function ThemeProvider({ children }: ThemeProviderProps): React.ReactElement {
   const [darkMode, setDarkMode] = useState(false);
+  const animatedOpacity = useRef(new Animated.Value(1)).current;
 
-  const toggleTheme = (): void => setDarkMode((prev) => !prev);
+  const toggleTheme = (): void => {
+    // Fade out
+    Animated.timing(animatedOpacity, {
+      toValue: 0.7,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(() => {
+      // Toggle the theme
+      setDarkMode((prev) => !prev);
+      
+      // Fade back in
+      Animated.timing(animatedOpacity, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      }).start();
+    });
+  };
 
   const value: ThemeContextType = {
     darkMode,
     toggleTheme,
     colors: darkMode ? darkColors : lightColors,
+    animatedOpacity,
   };
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

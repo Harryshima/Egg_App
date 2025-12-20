@@ -5,11 +5,11 @@
     "slug": "Eggcellent",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/eggicon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/eggicon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -18,17 +18,18 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/eggicon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.harryshima.Eggcellent"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/eggicon.png"
     },
     "plugins": [
-      "expo-font"
+      "expo-font",
+      "expo-router"
     ],
     "extra": {
       "eas": {

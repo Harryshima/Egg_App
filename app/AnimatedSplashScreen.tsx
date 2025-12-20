@@ -44,7 +44,7 @@ export default function RotatingSplash({ children }: RotatingSplashProps) {
     return (
       <View style={styles.container}>
         <Animated.Image
-          source={require("../assets/splash-icon.png")}
+          source={require("../assets/eggicon.png")}
           style={[styles.logo, { transform: [{ rotate }] }]}
           resizeMode="contain"
         />
@@ -58,7 +58,7 @@ export default function RotatingSplash({ children }: RotatingSplashProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#ffffff",
+    backgroundColor: "black",
     justifyContent: "center",
     alignItems: "center",
   },
