@@ -24,13 +24,12 @@ import { ref, onValue } from "firebase/database";
 
 // -------- SIZE THRESHOLDS ---------
 const sizeThresholds = {
-  Peewee: [5, 50.0],
-  S: [50.1, 55],
-  M: [55.1, 60],
-  L: [60.1, 65],
-  XL: [65.1, 70],
-  J: [70.1, 75],
-  Jumbo: [75.1, 999],
+  Peewee: [5, 49],
+  S: [50, 54],
+  M: [55, 60],
+  L: [61, 64],
+  XL: [65, 68],
+  Jumbo: [69, 499],
 };
 
 // Enable LayoutAnimation on Android
@@ -117,23 +116,22 @@ export default function History(): React.ReactElement {
               return typeof item === 'number' ? item : 0;
             });
           
-          // Count ALL eggs >= 5g (including Peewee, standard sizes, and Jumbo)
+          // Count ALL eggs >= 5g (including Peewee, standard sizes)
           const totalEggs = weights.filter((w) => w >= 5).length;
 
-          // Count all sizes including Peewee and Jumbo
+          // Count all sizes
           const sizeCounts: Record<string, number> = {
             Peewee: 0,
             S: 0,
             M: 0,
             L: 0,
             XL: 0,
-            J: 0,
             Jumbo: 0,
           };
 
           weights.forEach((w) => {
-            // Count ALL eggs >= 5g
-            if (w >= 5) {
+            // Count ALL eggs >= 5g and < 500g
+            if (w >= 5 && w < 500) {
               for (const size in sizeThresholds) {
                 const [min, max] = sizeThresholds[size as keyof typeof sizeThresholds];
                 if (w >= min && w <= max) {
@@ -144,11 +142,11 @@ export default function History(): React.ReactElement {
             }
           });
 
-          // Count Peewee (warnings) and Jumbo (errors)
-          const peeweeCount = weights.filter((w) => w >= 5 && w <= 50).length;
-          const estimatedErrors = weights.filter((w) => w > 75).length;
+          // Count Peewee (warnings) and errors (>= 500g)
+          const peeweeCount = weights.filter((w) => w >= 5 && w <= 49).length;
+          const estimatedErrors = weights.filter((w) => w >= 500).length;
           
-          // Error rate based on total eggs (including Peewee and Jumbo)
+          // Error rate based on total eggs
           const errorRate = totalEggs ? (estimatedErrors / totalEggs) * 100 : 0;
           
           // Calculate average weight for ALL eggs >= 5g
@@ -157,7 +155,7 @@ export default function History(): React.ReactElement {
             ? validWeights.reduce((a, b) => a + b, 0) / validWeights.length
             : 0;
 
-          // Status based on error rate (Jumbo eggs only)
+          // Status based on error rate
           let statusText = "Stable";
           let statusColor = "#4CAF50";
           if (errorRate > 10 && errorRate <= 15) {
@@ -293,11 +291,11 @@ export default function History(): React.ReactElement {
       return;
     }
 
-    let csv = "Batch ID,Date,Time,Total Eggs,Average Weight (g),Peewee,Errors,Error Rate (%),Status,Peewee,S,M,L,XL,J,Jumbo\n";
+    let csv = "Batch ID,Date,Time,Total Eggs,Average Weight (g),Peewee,Errors,Error Rate (%),Status,Peewee,S,M,L,XL,Jumbo,Overweight (>=500g)\n";
     
     filteredBatches.forEach(batch => {
       csv += `${batch.batchId},${batch.date},${batch.time},${batch.totalEggs},${batch.avgWeight.toFixed(1)},${batch.peeweeCount},${batch.estimatedErrors},${batch.errorRate.toFixed(1)},${batch.statusText},`;
-      csv += `${batch.sizeCounts.Peewee},${batch.sizeCounts.S},${batch.sizeCounts.M},${batch.sizeCounts.L},${batch.sizeCounts.XL},${batch.sizeCounts.J},${batch.sizeCounts.Jumbo}\n`;
+      csv += `${batch.sizeCounts.Peewee},${batch.sizeCounts.S},${batch.sizeCounts.M},${batch.sizeCounts.L},${batch.sizeCounts.XL},${batch.sizeCounts.Jumbo},${batch.estimatedErrors}\n`;
     });
 
     try {
@@ -602,11 +600,11 @@ export default function History(): React.ReactElement {
                           </View>
                         )}
 
-                        {/* Errors (Jumbo) */}
+                        {/* Errors (>=500g) */}
                         {batch.estimatedErrors > 0 && (
                           <View style={[styles.infoRow, { backgroundColor: darkMode ? "#333" : "#f9f9f9" }]}>
                             <Ionicons name="alert-circle-outline" size={18} color="#F44336" style={{ marginRight: 6 }} />
-                            <Text style={[styles.infoTitle, { color: colors.subtext }]}>Super Jumbo (Errors)</Text>
+                            <Text style={[styles.infoTitle, { color: colors.subtext }]}>Overweight (≥500g)</Text>
                             <Text style={[styles.infoValue, { color: "#F44336" }]}>{batch.estimatedErrors}</Text>
                           </View>
                         )}
@@ -638,9 +636,6 @@ export default function History(): React.ReactElement {
                             if (size === "Peewee") {
                               badgeColor = "#FFF9E6";
                               textColor = "#f5a623";
-                            } else if (size === "Jumbo") {
-                              badgeColor = "#FFE5E5";
-                              textColor = "#F44336";
                             }
                             
                             return (
@@ -651,6 +646,14 @@ export default function History(): React.ReactElement {
                               </View>
                             );
                           })}
+                          {/* Show overweight errors separately */}
+                          {batch.estimatedErrors > 0 && (
+                            <View style={[styles.sizeBadge, { backgroundColor: "#FFE5E5" }]}>
+                              <Text style={{ color: "#F44336", fontWeight: "600" }}>
+                                Error: {batch.estimatedErrors}
+                              </Text>
+                            </View>
+                          )}
                         </View>
 
                         {/* Full Batch ID */}

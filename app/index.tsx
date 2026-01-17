@@ -27,13 +27,12 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
 
 // SIZE THRESHOLDS 
 const sizeThresholds = {
-  Peewee: { min: 5, max: 50 },
-  S: { min: 50.1, max: 55 },
-  M: { min: 55.1, max: 60 },
-  L: { min: 60.1, max: 65 },
-  XL: { min: 65.1, max: 70 },
-  J: { min: 70.1, max: 75 },
-  SJ: { min: 75.1, max: Infinity },
+  Peewee: { min: 5, max: 49 },
+  S: { min: 50, max: 54 },
+  M: { min: 55, max: 60 },
+  L: { min: 61, max: 64 },
+  XL: { min: 65, max: 68 },
+  Jumbo: { min: 69, max: 499 }, // Anything from 69g to 499g is Jumbo
 };
 
 const loadCellsCount = 16;
@@ -138,8 +137,8 @@ export default function Dashboard(): React.ReactElement {
         const weights: number[] = Object.values(data)
           .filter((item: any) => typeof item === 'object' && item.weight !== undefined)
           .map((item: any) => item.weight);
-        const totalEggs = weights.filter((w) => w >= 5).length; // Only count eggs >= 5g
-        const errors = weights.filter((w) => w > 75).length;
+        const totalEggs = weights.filter((w) => w >= 5).length;
+        const errors = weights.filter((w) => w >= 500).length;
         const errorRate = totalEggs ? (errors / totalEggs) * 100 : 0;
         setYesterdayStats({ totalEggs, errorRate });
       }
@@ -197,16 +196,16 @@ export default function Dashboard(): React.ReactElement {
           weightsArray.push(weight);
 
           const isEggPresent = weight >= 5; 
-          const isPeewee = isEggPresent && weight >= 5 && weight <= 50; 
-          const isError = isEggPresent && weight > 75;
+          const isPeewee = isEggPresent && weight >= 5 && weight <= 49; 
+          const isError = isEggPresent && weight >= 500;
 
-          // Send notification for both Peewee (warning) and Jumbo (error)
+          // Send notification for Peewee (warning) and overweight eggs (error >= 500g)
           if (notificationsEnabled && isEggPresent && (isPeewee || isError)) {
             if (shouldSendNotification(i)) {
               const title = `Load Cell ${i + 1} ${isPeewee ? 'Warning' : 'Alert'}`;
               const description = isPeewee 
                 ? `Peewee egg detected: ${weight.toFixed(1)}g (below standard size)`
-                : `Jumbo egg detected: ${weight.toFixed(1)}g (exceeds limit)!`;
+                : `Overweight egg detected: ${weight.toFixed(1)}g (exceeds 500g limit)!`;
 
               sendNotification(title, description);
               saveNotificationToFirebase(title, description, isPeewee ? "Moderate" : "Critical");
@@ -234,12 +233,14 @@ export default function Dashboard(): React.ReactElement {
 
   // -------- COUNT EGGS BY SIZE --------
   const sizeCounts = useMemo(() => {
-    const counts: Record<string, number> = { S: 0, M: 0, L: 0, XL: 0, J: 0 };
+    const counts: Record<string, number> = { S: 0, M: 0, L: 0, XL: 0, Jumbo: 0 };
 
     eggWeights.forEach((w) => {
-      if (w > 50 && w <= 75) { // Only count standard sizes (S, M, L, XL, J)
+      if (w >= 50 && w < 500) { // Only count standard sizes (S, M, L, XL, Jumbo)
         const size = getSizeFromWeight(w);
-        counts[size] = (counts[size] || 0) + 1;
+        if (size !== "-") {
+          counts[size] = (counts[size] || 0) + 1;
+        }
       }
     });
 
@@ -247,11 +248,11 @@ export default function Dashboard(): React.ReactElement {
   }, [eggWeights]);
 
   // -------- SYSTEM SUMMARY --------
-  // Only eggs between 50.1g - 75g are ACCURATE (sizes S, M, L, XL, J)
-  // Peewee (5-50g) is a warning, NOT accurate and NOT error
-  // SJ (>75g) is an error
-  const accurateEggs = eggWeights.filter((w) => w > 50 && w <= 75).length; // Only standard sizes
-  const estimatedErrors = eggWeights.filter((w) => w > 75).length; // Only SJ/Jumbo is error
+  // Only eggs between 50g - 499g are ACCURATE (sizes S, M, L, XL, Jumbo)
+  // Peewee (5-49g) is a warning, NOT accurate and NOT error
+  // >= 500g is an error
+  const accurateEggs = eggWeights.filter((w) => w >= 50 && w < 500).length; // Only standard sizes
+  const estimatedErrors = eggWeights.filter((w) => w >= 500).length; // Only >= 500g is error
   const totalEggs = eggWeights.filter((w) => w >= 5).length; // All eggs including warnings
   const errorRate = totalEggs ? (estimatedErrors / totalEggs) * 100 : 0;
   const avgWeight = totalEggs
@@ -269,7 +270,7 @@ export default function Dashboard(): React.ReactElement {
       .filter(({ weight }) => {
         if (filterType === "all") return true;
         if (filterType === "active") return weight >= 5; // Only show eggs >= 5g
-        if (filterType === "errors") return weight > 75; // Only SJ/Jumbo (>75g) is error
+        if (filterType === "errors") return weight >= 500; // Only >= 500g is error
         if (filterType === "empty") return weight < 5; // Less than 5g is empty
         return true;
       });
@@ -329,7 +330,7 @@ export default function Dashboard(): React.ReactElement {
   const clearErrors = async () => {
     Alert.alert(
       "Clear Errors",
-      "This will reset all Jumbo egg load cells (>75g). Continue?",
+      "This will reset all overweight load cells (≥500g). Continue?",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -341,7 +342,7 @@ export default function Dashboard(): React.ReactElement {
               const updatedEggs: any = {};
               
               eggWeights.forEach((weight, index) => {
-                if (weight > 75) {
+                if (weight >= 500) {
                   updatedEggs[index] = { weight: 0 };
                 } else {
                   updatedEggs[index] = { weight };
@@ -576,8 +577,8 @@ export default function Dashboard(): React.ReactElement {
             <View style={styles.grid}>
               {filteredCells.map(({ weight, index }) => {
                 const isEggPresent = weight >= 5; // Only consider >= 5g as present
-                const isPeewee = isEggPresent && weight >= 5 && weight <= 50; // Warning only
-                const isError = isEggPresent && weight > 75; // Actual error
+                const isPeewee = isEggPresent && weight >= 5 && weight <= 49; // Warning only
+                const isError = isEggPresent && weight >= 500; // Actual error
                 const sizeLabel = isEggPresent ? getSizeFromWeight(weight) : "-";
                 const isExpanded = expandedCell === index;
 
